@@ -123,6 +123,17 @@ Toastify-js
 
 ----------------------------------------------------------------------------------------
 
+multer 
+
+(i) install (https://www.npmjs.com/package/multer)
+
+(ii) create folder using fs
+     public/uploads
+
+(iii) import multer from "multer";
+
+----------------------------------------------------------------------------------------
+
 Browsers treat ? = / & : @ + $ # as syntax
 So when used as data, you must encode them
 

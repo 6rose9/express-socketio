@@ -17,7 +17,7 @@ socket.on("post:created", (payload) => {
   // option 2: auto refresh the page
   setTimeout(() => {
     if (location.pathname === "/") location.reload();
-  }, 1500);
+  }, 3000);
 });
 
 socket.on("post:updated", (payload) => {
@@ -32,7 +32,7 @@ socket.on("post:updated", (payload) => {
   // option 2: auto refresh the page
   setTimeout(() => {
     if (location.pathname === "/") location.reload();
-  }, 1500);
+  }, 3000);
 });
 
 socket.on("post:deleted", (payload) => {
@@ -41,13 +41,13 @@ socket.on("post:deleted", (payload) => {
   // option 1: show toast / alert
   showToastify({
     icon: "error",
-    message: `One post deleted!`,
+    message: `Post deleted: ${payload.title}`,
   });
 
   // auto refresh the page
   setTimeout(() => {
     if (location.pathname === "/") location.reload();
-  }, 1500);
+  }, 3000);
 });
 
 // boostarp toast
@@ -73,7 +73,7 @@ function showToastify({ icon, message }) {
       backgroundColor = "linear-gradient(to right, #00b09b, #96c93d)";
       break;
     case "error":
-      backgroundColor = "linear-gradient(to right, #ff5f6d, #ffc371)";
+      backgroundColor = "linear-gradient(to right, #ff5f6d, #f54d10)";
       break;
     case "info":
       backgroundColor = "linear-gradient(to right, #2193b0, #6dd5ed)";

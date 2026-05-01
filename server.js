@@ -1,10 +1,13 @@
-import 'dotenv/config'
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import morgan from "morgan";
 import { MongoClient, ObjectId } from "mongodb";
 import { Server } from "socket.io";
+import multer from "multer";
+import fs from "fs";
+import { title } from "process";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -25,9 +28,20 @@ app.use(morgan("dev"));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Serve node_modules files
-app.use('/bootstrap', express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
-app.use('/fontawesome', express.static(path.join(__dirname, "node_modules/@fortawesome/fontawesome-free")));
-app.use('/toastify', express.static(path.join(__dirname, "node_modules/toastify-js/src")));
+app.use(
+  "/bootstrap",
+  express.static(path.join(__dirname, "node_modules/bootstrap/dist")),
+);
+app.use(
+  "/fontawesome",
+  express.static(
+    path.join(__dirname, "node_modules/@fortawesome/fontawesome-free"),
+  ),
+);
+app.use(
+  "/toastify",
+  express.static(path.join(__dirname, "node_modules/toastify-js/src")),
+);
 
 // Start server
 const expressServer = app.listen(port, () => {
@@ -62,11 +76,11 @@ const db_password = process.env.DB_PASSWORD;
 const db_name = process.env.DB_NAME;
 
 // const uri = `mongodb+srv://${db_user}:${db_password}@${cluster}.f5jhagk.mongodb.net/?appName=${cluster}`;
-const uri = process.env.MONGODB_URI ||`mongodb://127.0.0.1:27017/`;
+const uri = process.env.MONGODB_URI || `mongodb://127.0.0.1:27017/`;
 let client;
 let db;
 
-// Helpers 
+// Helpers
 function slugify(title) {
   // [^] = not
   // \w = word character(a-z,A-Z,0-9,_)
@@ -75,13 +89,12 @@ function slugify(title) {
   return String(title)
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s]/g, "")     // remove special characters
-    .replace(/[\s_-]+/g, "-")    // spaces & underscores → dash
-    .replace(/^-+|-+$/g, "");    // trim dashes from start/end
+    .replace(/[^\w\s]/g, "") // remove special characters
+    .replace(/[\s_-]+/g, "-") // spaces & underscores → dash
+    .replace(/^-+|-+$/g, ""); // trim dashes from start/end
 }
 
 async function uniqueSlug(collection, baseSlug, ignoreId = null) {
-  
   // new-post-one
   // new-post-one-1
   // new-post-one-2
@@ -96,7 +109,6 @@ async function uniqueSlug(collection, baseSlug, ignoreId = null) {
 
     i += 1;
     slug = `${baseSlug}-${i}`;
-
   }
 }
 
@@ -108,7 +120,6 @@ async function connectToMongoDB() {
     db = client.db(db_name);
 
     console.log("Connected to MongoDB");
-
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
     process.exit(1);
@@ -131,27 +142,65 @@ app.use((req, res, next) => {
 
 // --------------------------------------------------------------------------------------------------------------
 
+const uploadDir = path.join(__dirname, "public/uploads");
+
+// Ensure upload directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // my family @ photo 2026!!.jpg to 123456789-my-family-photo-2026.jpg
+    const ext = path.extname(file.originalname).toLowerCase();
+    const name = slugify(path.basename(file.originalname, ext)) + ext;
+
+    const uniqueName = `${Date.now()}-${name}`;
+    cb(null, uniqueName);
+  },
+});
+
+function fileFilter(req, file, cb) {
+  if (!file.mimetype.startsWith("image/")) {
+    return cb(new Error("Only image files are allowed!"));
+  }
+  cb(null, true);
+}
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+});
+
+// --------------------------------------------------------------------------------------------------------------
+
 // home
 app.get("/", async (req, res) => {
   try {
-
     const page = Math.max(parseInt(req.query.page) || 1, 1); // ignore NaN
     const limit = 3;
     const skip = (page - 1) * limit;
-    
+
     console.log(req.query);
 
     const search = (req.query.search || "").trim();
 
     // $or => any of this conditions
     // i => case-insensitive search
-    const filter = search ? {
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { subtitle: { $regex: search, $options: "i" } },
-        { body: { $regex: search, $options: "i" } },
-      ]
-    } : {};
+    const filter = search
+      ? {
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { subtitle: { $regex: search, $options: "i" } },
+            { body: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
 
     const posts = await db
       .collection("posts")
@@ -160,9 +209,9 @@ app.get("/", async (req, res) => {
       .skip(skip)
       .limit(limit)
       .toArray();
-    
+
     const total = await db.collection("posts").countDocuments(filter);
-    const totalPages = Math.max(Math.ceil(total / limit),1);
+    const totalPages = Math.max(Math.ceil(total / limit), 1);
 
     res.render("index", {
       title: "Home Page",
@@ -204,7 +253,7 @@ app.get("/posts/create", (req, res) => {
   });
 });
 
-app.post("/posts/create", async (req, res) => {
+app.post("/posts/create", upload.single("image"), async (req, res) => {
   try {
     const { title, subtitle, body } = req.body;
     console.log("Received form data:", req.body);
@@ -224,12 +273,15 @@ app.post("/posts/create", async (req, res) => {
       return res.render("create", {
         title: "Create New Post",
         error: "Title is not valid to generate slug!",
-        formData: req.body
+        formData: req.body,
       });
     }
 
     const postCollection = db.collection("posts");
     const slug = await uniqueSlug(postCollection, baseSlug);
+
+    // multer file info
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     // prepare post data
     const newPost = {
@@ -237,6 +289,7 @@ app.post("/posts/create", async (req, res) => {
       title: title.trim(),
       subtitle: subtitle.trim(),
       body: body.trim(),
+      imageUrl,
       createdAt: new Date(),
     };
 
@@ -249,7 +302,6 @@ app.post("/posts/create", async (req, res) => {
     });
 
     return res.redirect(`/posts/${slug}`);
-    
   } catch (error) {
     console.error("Error rendering create page:", error);
     res.render("create", {
@@ -294,7 +346,7 @@ app.get("/posts/:id/edit", async (req, res) => {
   }
 });
 
-app.post("/posts/:id/edit", async (req, res) => {
+app.post("/posts/:id/edit", upload.single("image"), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, subtitle, body } = req.body;
@@ -304,11 +356,12 @@ app.post("/posts/:id/edit", async (req, res) => {
     const _id = new ObjectId(id);
 
     const existing = await postCollection.findOne({ _id });
-    
-    if (!existing) return res.render("404", {
-      title: "404 Not Found",
-      message: "Invalid ID",
-    });
+
+    if (!existing)
+      return res.render("404", {
+        title: "404 Not Found",
+        message: "Invalid ID",
+      });
 
     // validate form data
     if (!title || !subtitle || !body) {
@@ -326,7 +379,7 @@ app.post("/posts/:id/edit", async (req, res) => {
 
     // slug
     let slug = existing.slug;
-    if(existing.title !== title) {
+    if (existing.title !== title) {
       const baseSlug = slugify(title);
 
       if (!baseSlug) {
@@ -344,12 +397,31 @@ app.post("/posts/:id/edit", async (req, res) => {
       slug = await uniqueSlug(postCollection, baseSlug, _id);
     }
 
+    // multer file info
+    let imageUrl = existing.imageUrl;
+    if (req.file) { 
+      // delete old image file if exist
+      if (imageUrl) {
+        const oldImagePath = path.join(
+          __dirname,
+          "public",
+          imageUrl.replace("/uploads/", "uploads/"),
+        );
+        fs.unlink(oldImagePath, (err) => {
+          if (err) console.error("Failed to delete old image file:", err);
+        });
+      }
+
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
+
     // prepare post data
     const updateData = {
       title: title.trim(),
       subtitle: subtitle.trim(),
       body: body.trim(),
       slug,
+      imageUrl,
       updatedAt: new Date(),
     };
 
@@ -392,6 +464,26 @@ app.post("/posts/:id/delete", async (req, res) => {
       });
     }
 
+    // delete image file if exist
+    const post = await req.db
+      .collection("posts")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!post) {
+      return res.status(404).render("404", { title: "404 Not Found" });
+    }
+
+    if (post.imageUrl) {
+      const imagePath = path.join(
+        __dirname,
+        "public",
+        post.imageUrl.replace("/uploads/", "uploads/"),
+      );
+      fs.unlink(imagePath, (err) => {
+        if (err) console.error("Failed to delete image file:", err);
+      });
+    }
+
     const result = await req.db
       .collection("posts")
       .deleteOne({ _id: new ObjectId(id) });
@@ -402,7 +494,7 @@ app.post("/posts/:id/delete", async (req, res) => {
 
     // socket io emit
     req.io.emit("post:deleted", {
-      id,
+      title: post.title,
     });
 
     return res.redirect("/");
@@ -449,7 +541,7 @@ app.use((req, res) => {
 });
 
 process.on("SIGINT", async () => {
-  if(client) await client.close();
+  if (client) await client.close();
   console.log("MongoDB connection closed through app termination");
   process.exit(0);
 });

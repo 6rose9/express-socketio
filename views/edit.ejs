@@ -9,9 +9,19 @@
       <div class="alert alert-danger"><%= error %></div>
       <% } %>
 
-      <form action="/posts/<%= post._id %>/edit" method="POST">
+      <form action="/posts/<%= post._id %>/edit" method="POST" enctype="multipart/form-data">
         
         <h3>Edit Post</h3>
+
+        <div class="mt-3">
+          <label class="form-label" for="image">Image:</label>
+          <input
+            type="file"
+            class="form-control"
+            id="image"
+            name="image"
+          />
+        </div>
 
         <div class="mt-3">
           <label class="form-label" for="title">Title:</label>

@@ -9,6 +9,13 @@
         <div class="col-md-8">
           <div class="card">
             <div class="card-body">
+              <% if (post.imageUrl) { %>
+              <img
+                src="<%= post.imageUrl %>"
+                alt="Post Image"
+                class="img-fluid mb-4"
+              />
+              <% } %>
               <h4><%= post.title %></h4>
               <p class="text-muted">
                 Posted: <%= post.createdAt ? new
