@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('layout/head.ejs') %>
+  <body>
+    <%- include('layout/nav.ejs') %>
+    <div class="container">
+
+      <h3 class="text-bold">Latest Blog Posts</h3>
+      <small>Total posts: <%= total %></small>
+
+      <!-- search posts -->
+      <form action="/?search=search" class="my-4" method="get">
+        <div class="input-group mb-3">
+          <input type="text" name="search" class="form-control" placeholder="Search posts..." value="<%= search || '' %>" />
+          <button type="submit" class="btn btn-outline-primary">Search</button>
+          <% if (search) { %>
+          <a href="/" class="btn btn-outline-secondary">Clear</a>
+          <% } %>
+        </div>
+      </form>
+
+      <% if (posts.length > 0) { %> <% posts.forEach(post => { %>
+      <div class="card post-card">
+        <h3>
+          <a href="/posts/<%= post.slug %>" class="text-decoration-none post-title"><%= post.title %></a>
+        </h3>
+        <small
+          >Posted:
+          <%= post.createdAt ? new Date(post.createdAt).toLocaleString() : 'Unknown' %></small
+        >
+        <p class="text-semi-bold mt-3"><%= post.subtitle %></p>
+        <p><%= post.body %></p>
+        <div class="">
+          <a href="/posts/<%= post._id %>/edit" class="btn btn-sm btn-primary" title="Edit">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </a>
+          <form action="/posts/<%= post._id %>/delete" class="d-inline" onsubmit="return confirm('Are you sure to delete?')" method="post">
+            <button type="submit" class="btn btn-sm btn-danger text-start" title="Delete">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <% }) %>
+
+      <% } else { %>
+      <p>There are no blog posts to display.</p>
+      <% } %>
+
+      <!-- pagination -->
+       <!-- http://localhost:3000/?page=1&search='abc' -->
+       <div class="d-flex justify-content-center align-items-center gap-2 my-4">
+        <a href="/?page=<%= page - 1 %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>" class="btn btn-outline-secondary">Prev</a>
+        
+        <span class="text-muted">Page <%= page %> / <%= totalPages %></span>
+        
+        <a href="/?page=<%= (page + 1) > totalPages ? totalPages : page + 1 %><%= search ? `&search=${encodeURIComponent(search)}` : '' %>" class="btn btn-outline-secondary">Next</a>
+      </div>
+    </div>
+
+    <%- include('layout/footer.ejs') %>
+
+  </body>
+</html>

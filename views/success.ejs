@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('layout/head.ejs') %>
+  <body>
+     <%- include('layout/nav.ejs') %>
+    <div class="container">
+        <h1>Success!</h1>
+        <div class="card alert alert-success p-4 mb-4">
+          <p>
+            <strong><%= message %></strong>
+          </p>
+          <% if(postId) { %>
+            <p>Post ID: <%= postId %></p>
+          <% } %>
+        </div>
+        <div class="d-flex gap-4">
+            <a href="/">Back to Home</a>
+            <a href="/posts/create">Create Another Post</a>
+        </div>
+      </div>
+      <%- include('layout/footer.ejs') %>
+  </body>
+</html>

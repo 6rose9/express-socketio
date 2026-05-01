@@ -1,0 +1,37 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    max-width: 1200px;
+    min-height: 100vh;
+
+    margin: 0px auto;
+
+    display: flex;
+    flex-direction: column;
+}
+
+nav {
+    text-transform: uppercase;
+
+    margin-bottom: 50px;
+    border-bottom: 1px solid #333;
+}
+
+body>.container {
+    flex: 1;
+}
+
+.post-card {
+    padding: 20px;
+    margin-bottom: 20px;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f1f1f1;
+}
+
+.post-title:hover{
+    text-decoration: underline !important;
+}

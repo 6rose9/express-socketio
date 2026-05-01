@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+<%- include('layout/head.ejs') %>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #eef2ff, #f8fafc);
+    }
+
+    .hero {
+      border-radius: 12px;
+      padding: 40px 20px;
+    }
+
+    .card-custom {
+      border: none;
+      border-radius: 12px;
+      transition: 0.3s;
+    }
+
+    .card-custom:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+  </style>
+
+  <body>
+    <%- include('layout/nav.ejs') %>
+
+    <div class="container">
+
+      <!-- Hero -->
+      <div class="hero alert alert-primary text-center mb-5">
+        <h1 class="fw-bold">About This Blog</h1>
+        <p class="mb-0">Sharing ideas, learning, and everyday insights</p>
+      </div>
+
+      <!-- Intro -->
+      <div class="card card-custom shadow-sm mb-4">
+        <div class="card-body p-4">
+          <p>
+            Welcome to my blog — a simple space where I share ideas, thoughts,
+            and things I learn along the way.
+          </p>
+
+          <p>
+            This blog covers a mix of topics, from technology and coding to
+            everyday experiences, tips, and anything interesting worth sharing.
+          </p>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="row g-4 mb-4">
+
+        <div class="col-md-4">
+          <div class="card card-custom text-center shadow-sm p-3 bg-white">
+            <h5 class="fw-bold text-primary">📚 Learning</h5>
+            <p class="text-muted small">
+              Simple tutorials and notes to make things easier.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card card-custom text-center shadow-sm p-3 bg-white">
+            <h5 class="fw-bold text-success">💡 Ideas</h5>
+            <p class="text-muted small">
+              Thoughts, experiences, and useful insights.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card card-custom text-center shadow-sm p-3 bg-white">
+            <h5 class="fw-bold text-danger">🚀 Growth</h5>
+            <p class="text-muted small">
+              A journey of learning and improvement.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Why -->
+      <div class="card card-custom shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3 text-dark">Why I Created This</h5>
+          <p>
+            I created this blog to document what I learn and share it with
+            others. Writing things down helps me understand better—and it might
+            help you too.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-4">
+        <p class="text-muted">Thanks for visiting ✨</p>
+      </div>
+
+    </div>
+
+    <%- include('layout/footer.ejs') %>
+  </body>
+</html>

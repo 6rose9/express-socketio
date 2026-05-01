@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('layout/head.ejs') %>
+  <body>
+    <%- include('layout/nav.ejs') %>
+
+    <div class="container">
+
+      <% if (error) { %>
+      <div class="alert alert-danger">
+        <%= error %>
+      </div>
+      <% } %>
+
+      <form action="/posts/create" method="POST">
+        
+        <h3>Create Post</h3>
+
+        <div class="mt-3">
+          <label class="form-label" for="title">Title:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="title"
+            name="title"
+            value="<%= formData ? formData.title : '' %>"
+          />
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label" for="subtitle">Subtitle:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="subtitle"
+            name="subtitle"
+            value="<%= formData ? formData.subtitle : '' %>"
+          />
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label" for="body">Body:</label>
+          <textarea id="body" name="body" class="form-control" rows="5"><% if (formData && formData.body) { %><%= formData.body %><% } %></textarea>
+        </div>
+
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Create Post</button>
+        </div>
+      </form>
+    </div>
+    <%- include('layout/footer.ejs') %>
+  </body>
+</html>

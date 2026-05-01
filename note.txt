@@ -1,0 +1,136 @@
+MongoDB is a NoSQL database that stores data in JSON-like documents instead of tables.
+Installation => npm i mongodb
+(use for native)
+----------------------------------------------------------------------------------------
+
+Mongoose is an Object Data Modeling (ODM) tool/library that lets you interact with MongoDB 
+using structured models and schemas instead of raw queries.
+
+Installation => npm i mongoose
+
+With Mongoose, you can:
+
+- Define schemas
+
+- Create models
+
+- Validate data
+
+- Use middleware (hooks)
+
+- Use relationships between collections
+
+
+***** Mongoose is built on top of the MongoDB Node.js Driver. 
+        It already includes the mongodb driver as a dependency. *****
+
+Express
+   ↓
+Mongoose
+   ↓
+MongoDB Node Driver (mongodb package)
+   ↓
+MongoDB Server
+
+https://www.mongodb.com/docs/drivers/node/current/
+
+----------------------------------------------------------------------------------------
+
+dotenv
+
+(i) https://www.npmjs.com/package/dotenv
+
+      npm i dotenv
+
+      import 'dotenv/config';
+
+(ii)  manual create
+      .env
+
+----------------------------------------------------------------------------------------
+
+bootstrap 5.3
+
+(i)  install
+     npm i bootstrap@5.3.8
+
+(ii) expose bootstrap from node_modules 
+ 
+     // Express does not serve node_modules by default
+     // This maps to /bootstrap/css/bootstrap.min.css and /bootstrap/js/bootstrap.bundle.min.js
+     app.use('/bootstrap', express.static(path.join(__dirname, "node_modules/bootstrap/dist")))
+     
+
+(iii)load bootstrap css in header.ejs
+     <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+
+(iv) load bootstrap JS
+     <script src="/bootstrap/js/bootstrap.bundle.min.js" ></script>
+
+----------------------------------------------------------------------------------------
+
+font awesome 7.2
+
+(i)  install (https://www.npmjs.com/package/@fortawesome/fontawesome-free)
+     npm i @fontawesome/fontawesome-free
+
+(ii) expose font awesome from node_modules 
+     app.use('/fontawesome', express.static(path.join(__dirname, "node_modules/@fortawesome/fontawesome-free")))
+     
+
+(iii)load font awesome css in header.ejs
+     <link href="/fontawesome/css/all.min.css" rel="stylesheet" />
+
+(iv) load bootstrap JS
+     <script src="/bootstrap/js/bootstrap.bundle.min.js" ></script>
+
+----------------------------------------------------------------------------------------
+socket.io
+
+(i) https://socket.io/docs/v4/server-installation/
+    npm install socket.io
+
+(ii) Update server.js (use http server + attach Socket.IO)
+     
+     import {Server} from "socket.io";
+     import http from "http";
+
+----------------------------------------------------------------------------------------
+
+Browsers treat ? = / & : @ + $ # as syntax
+So when used as data, you must encode them
+
+encodeURIComponent("hello&world")
+// "hello%26world"
+
+decodeURIComponent("hello%26world")
+// "hello&world"
+
+----------------------------------------------------------------------------------------
+
+// single post detail page (ID)
+ app.get("/posts/:id", async (req, res) => {
+   try {
+     const { id } = req.params;
+     if (!ObjectId.isValid(id)) {
+       return res.status(400).render("error", {
+         title: "Invalid ID",
+         message: "Post ID is not valid",
+       });
+     }
+     const post = await req.db.collection("posts").findOne({ _id: new ObjectId(id) });
+     if (!post) {
+       return res.status(404).render("404", { title: "404 Not Found" });
+     }
+     res.render("detail", {
+       title: "Post Detail",
+       post,
+     });
+   } catch (error) {
+     console.log("Error fetching post detail", error);
+     res.status(500).render("error", {
+       title: "Server Error",
+       message: error.message || "Something went wrong!",
+     });
+   }
+ });
