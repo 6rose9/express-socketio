@@ -27,6 +27,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // Serve node_modules files
 app.use('/bootstrap', express.static(path.join(__dirname, "node_modules/bootstrap/dist")));
 app.use('/fontawesome', express.static(path.join(__dirname, "node_modules/@fortawesome/fontawesome-free")));
+app.use('/toastify', express.static(path.join(__dirname, "node_modules/toastify-js/src")));
 
 // Start server
 const expressServer = app.listen(port, () => {

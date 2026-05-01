@@ -17,7 +17,8 @@
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "mongodb": "^7.1.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "toastify-js": "^1.12.0"
   },
   "devDependencies": {
     "morgan": "^1.10.1",

@@ -35,3 +35,7 @@ body>.container {
 .post-title:hover{
     text-decoration: underline !important;
 }
+
+.post-body{
+    white-space: pre-line;
+}

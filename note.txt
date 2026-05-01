@@ -97,6 +97,32 @@ socket.io
 
 ----------------------------------------------------------------------------------------
 
+sweetalert2
+
+(i) https://www.npmjs.com/package/sweetalert2
+    npm i sweetalert2
+
+(ii) expose from node_modules
+    app.use('/sweetalert2',express.static(path.join(__dirname, 'node_modules/sweetalert2/dist')));
+
+(iii) load js 
+     <script src="/sweetalert2/sweetalert2.all.min.js"></script>
+
+or
+
+Toastify-js
+
+(i) https://github.com/apvarun/toastify-js/blob/master/README.md
+    npm install --save toastify-js
+
+(ii) expose from node_modules
+     // server.js
+     app.use("/toastify",express.static(path.join(__dirname, "node_modules/toastify-js/src")));
+
+(iii) load css and js file to ejs
+
+----------------------------------------------------------------------------------------
+
 Browsers treat ? = / & : @ + $ # as syntax
 So when used as data, you must encode them
 
