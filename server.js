@@ -61,6 +61,22 @@ const io = new Server(expressServer, {
 io.on("connection", (socket) => {
   console.log("Socket connected: " + socket.id);
 
+  socket.on("join-post", (slug) => {
+    const roomName = `post:${slug}`;
+    socket.join(roomName);
+
+    const count = io.sockets.adapter.rooms.get(roomName)?.size || 0;
+    io.to(roomName).emit("post:viewers", count);
+  });
+
+  socket.on("leave-post", (slug) => {
+    const roomName = `post:${slug}`;
+    socket.leave(roomName);
+
+    const count = io.sockets.adapter.rooms.get(roomName)?.size || 0;
+    io.to(roomName).emit("post:viewers", count);
+  });
+
   socket.on("disconnect", () => {
     console.log("Socket disconnected: " + socket.id);
   });
@@ -399,7 +415,7 @@ app.post("/posts/:id/edit", upload.single("image"), async (req, res) => {
 
     // multer file info
     let imageUrl = existing.imageUrl;
-    if (req.file) { 
+    if (req.file) {
       // delete old image file if exist
       if (imageUrl) {
         const oldImagePath = path.join(
@@ -518,12 +534,77 @@ app.get("/posts/:slug", async (req, res) => {
       return res.status(404).render("404", { title: "404 Not Found" });
     }
 
+    const comments = await req.db
+      .collection("comments")
+      .find({ postId: post._id })
+      .sort({ createdAt: -1 })
+      .toArray();
+
     res.render("detail", {
       title: "Post Detail",
       post,
+      comments,
+      commentError: null,
     });
   } catch (error) {
     console.log("Error fetching post detail", error);
+    res.status(500).render("error", {
+      title: "Server Error",
+      message: error.message || "Something went wrong!",
+    });
+  }
+});
+
+// comment
+app.post("/posts/:slug/comments", async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { name, message } = req.body;
+
+    const post = await req.db.collection("posts").findOne({ slug });
+
+    if (!post) {
+      return res.status(404).render("404", {
+        title: "404 Not Found",
+        message: "Invalid post!",
+      });
+    }
+
+    if (!name || !message) {
+      const comments = await req.db
+        .collection("comments")
+        .find({ postId: post._id })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return res.render("detail", {
+        title: "Post Detail",
+        post,
+        comments,
+        commentError: "Name and message are required",
+      });
+    }
+
+    // prepare comment
+    const newComment = {
+      postId: post._id,
+      name: name.trim(),
+      message: message.trim(),
+      createdAt: new Date(),
+    };
+
+    const result = await req.db.collection("comments").insertOne(newComment);
+
+    // Real-time : send to people who are on comments page of the post (room = post slug)
+    req.io.to(`post:${slug}`).emit("comment:created", {
+      id: result.insertedId,
+      slug,
+      ...newComment,
+    });
+
+    return res.redirect(`/posts/${slug}`);
+  } catch (error) {
+    console.error("Error creating comment", error);
     res.status(500).render("error", {
       title: "Server Error",
       message: error.message || "Something went wrong!",

@@ -21,6 +21,10 @@
                 Posted: <%= post.createdAt ? new
                 Date(post.createdAt).toLocaleString() : 'N/A' %>
               </p>
+              <p class="text-muted mb-2">
+                <span class="text-success">Online Readers: </span>
+                <span class="fw-bold ms-1" id="viewerCounter">0</span>
+              </p>
               <h5 class="text-secondary mt-4"><%= post.subtitle %></h5>
               <hr />
               <p class="post-body"><%= post.body %></p>
@@ -50,7 +54,55 @@
         </div>
         <div class="col-md-4"></div>
       </div>
+      <%- include('components/comments.ejs') %>
     </div>
     <%- include('layout/footer.ejs') %>
+
+    <script>
+
+      const ioClient = io();
+      const pageSlug = "<%= post.slug %>";
+
+      // Join a Socket.IO room based on the post slug to receive real-time updates for this post's comments
+      ioClient.emit("join-post", pageSlug);
+
+      ioClient.on("post:viewers", (count) => {
+        document.getElementById("viewerCounter").textContent = count || 0;
+      });
+
+      ioClient.on("comment:created", (payload) => {
+        
+        if(pageSlug != payload.slug) return; // Ignore if not for this post
+        
+        // prepend new comment to comments box
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <div class="border-bottom py-3">
+            <strong>${escapeHtml(payload.name)}</strong>
+            <small class="text-muted d-block">${new Date(payload.createdAt).toLocaleString()}</small>
+            <p class="mt-3">${escapeHtml(payload.message)}</p>
+          </div>
+        `;
+
+        const commentsBox = document.getElementById("commentsBox");
+        commentsBox.prepend(div);
+
+      });
+
+      // pagehide => mobile support, beforeunload => desktop support
+      window.addEventListener("beforeunload", () => {
+        ioClient.emit("leave-post", pageSlug);
+      });
+
+      // helpers
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    </script>
   </body>
 </html>
