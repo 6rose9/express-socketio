@@ -7,7 +7,9 @@ import { MongoClient, ObjectId } from "mongodb";
 import { Server } from "socket.io";
 import multer from "multer";
 import fs from "fs";
-import { title } from "process";
+import bcrypt from "bcrypt";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -144,6 +146,24 @@ async function connectToMongoDB() {
 
 connectToMongoDB();
 
+// Session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "mysecret",
+    resave: false, // don't save session if unmodified
+    saveUninitialized: false, // don't create session until something stored
+    store: MongoStore.create({
+      mongoUrl: uri,
+      dbName: db_name,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      httpOnly: true,
+    },
+  }),
+);
+
 // Middleware
 app.use((req, res, next) => {
   if (!db) {
@@ -153,6 +173,14 @@ app.use((req, res, next) => {
   req.db = db;
   req.io = io;
 
+  next();
+});
+
+// Make user data available in all EJS views Middleware
+app.use((req, res, next) => {
+  // console.log(res);
+  res.locals.currentUser = req.session.user || null;
+  console.log(res.locals);
   next();
 });
 
@@ -260,7 +288,131 @@ app.get("/about-us", (req, res) => {
 
 //--------------------------------------------------------------------------------------------------------------
 
-// post
+// auth routes
+app.get("/register", (req, res) => {
+  res.render("auth/register", {
+    title: "Register",
+    error: null,
+    formData: {},
+  });
+});
+
+app.post("/register", async (req, res) => {
+  const { username, email, password, confirmPassword } = req.body;
+
+  if (!username || !email || !password || !confirmPassword) {
+    return res.render("auth/register", {
+      title: "Register",
+      error: "All fields are required.",
+      formData: req.body,
+    });
+  }
+
+  if (password !== confirmPassword) {
+    return res.render("auth/register", {
+      title: "Register",
+      error: "Passwords do not match.",
+      formData: req.body,
+    });
+  }
+
+  const existingUser = await db.collection("users").findOne({
+    email: email.trim().toLowerCase(),
+  });
+
+  if (existingUser) {
+    return res.render("auth/register", {
+      title: "Register",
+      error: "Email is already registered.",
+      formData: req.body,
+    });
+  }
+
+  // 10 does not mean password length, it's the salt rounds, higher is more secure but slower
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newuser = {
+    username: username.trim(),
+    email: email.trim().toLowerCase(),
+    password: hashedPassword,
+    createdAt: new Date(),
+  };
+
+  const result = await db.collection("users").insertOne(newuser);
+
+  // Store user info in session
+  req.session.user = {
+    _id: result.insertedId,
+    username: newuser.username,
+    email: newuser.email,
+  };
+
+  return res.redirect("/");
+});
+
+app.get("/login", (req, res) => {
+  res.render("auth/login", {
+    title: "Login",
+    error: null,
+    formData: {},
+  });
+});
+
+app.post("/login", async (req, res) => {
+
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.render("auth/login", {
+      title: "Login",
+      error: "Email and password are required.",
+      formData: req.body,
+    });
+  }
+
+  const user = await db.collection("users").findOne({
+    email: email.trim().toLowerCase(),
+  });
+
+  if (!user) {
+    return res.render("auth/login", {
+      title: "Login",
+      error: "Invalid email or password.",
+      formData: req.body,
+    });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return res.render("auth/login", {
+      title: "Login",
+      error: "Invalid email or password.",
+      formData: req.body,
+    });
+  }
+
+  // Store user info in session
+  req.session.user = {
+    _id: user._id,
+    username: user.username,
+    email: user.email,
+  };
+
+  return res.redirect("/");
+});
+
+app.post("/logout", (req, res) => {
+  // remove user session
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+    }
+    res.redirect("/");
+  });
+});
+
+// post routes
 app.get("/posts/create", (req, res) => {
   res.render("create", {
     title: "Create New Post",

@@ -134,6 +134,64 @@ multer
 
 ----------------------------------------------------------------------------------------
 
+bcrypt
+
+(i) install (https://www.npmjs.com/package/bcrypt)
+    npm i bcrypt
+
+(ii) import 
+     import bcrypt from "bcrypt"
+
+----------------------------------------------------------------------------------------
+
+express-session 
+
+(i) install (https://www.npmjs.com/package/express-session)
+    npm i express-session
+
+(ii) import
+     import session from "express-session";
+
+(iii) update .env
+     SESSION_SECRET
+
+(iii) store session
+      app.use(session({
+          secret: 'keyboard cat',
+          resave: false,
+          saveUninitialized: true,
+          cookie: function(req) {
+          var match = req.url.match(/^\/([^/]+)/);
+          return {
+               path: match ? '/' + match[1] : '/',
+               httpOnly: true,
+               secure: req.secure || false,
+               maxAge: 60000
+          }
+       }
+     }))
+
+----------------------------------------------------------------------------------------
+
+connect-mongo 
+
+(i) install(https://www.npmjs.com/package/connect-mongo)
+    npm i connect-mongo
+
+(ii) import 
+     import MongoStore from "connect-mongo";
+
+(iii) store mongodb
+     app.use(express.session({
+          store: MongoStore.create({
+          mongoUrl: dbURL,
+          dbName: dbName,
+          collectionName: "sessions"
+          })
+     }));
+
+----------------------------------------------------------------------------------------
+
 Browsers treat ? = / & : @ + $ # as syntax
 So when used as data, you must encode them
 
