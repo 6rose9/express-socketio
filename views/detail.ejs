@@ -7,7 +7,7 @@
       <h3><%= title %></h3>
       <div class="row justify-container-center">
         <div class="col-md-8">
-          <div class="card">
+          <div class="card border-0">
             <div class="card-body">
               <% if (post.imageUrl) { %>
               <img
@@ -78,7 +78,7 @@
         const div = document.createElement("div");
         div.innerHTML = `
           <div class="border-bottom py-3">
-            <strong>${escapeHtml(payload.name)}</strong>
+            <strong>${escapeHtml(payload.username || 'Anonymous')}</strong>
             <small class="text-muted d-block">${new Date(payload.createdAt).toLocaleString()}</small>
             <p class="mt-3">${escapeHtml(payload.message)}</p>
           </div>
@@ -103,6 +103,23 @@
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
       }
+
+      function showEditForm(commentId){
+          const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
+          const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
+
+          if(viewCommentBox) viewCommentBox.classList.add("d-none");
+          if(editCommentBox) editCommentBox.classList.remove("d-none");
+      }
+
+      function hideEditForm(commentId){
+          const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
+          const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
+
+          if(viewCommentBox) viewCommentBox.classList.remove("d-none");
+          if(editCommentBox) editCommentBox.classList.add("d-none");
+      }
+
     </script>
   </body>
 </html>

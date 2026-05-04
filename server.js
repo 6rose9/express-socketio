@@ -184,6 +184,13 @@ app.use((req, res, next) => {
   next();
 });
 
+function isAuth(req, res, next) {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+  next();
+}
+
 // --------------------------------------------------------------------------------------------------------------
 
 const uploadDir = path.join(__dirname, "public/uploads");
@@ -359,7 +366,6 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -412,8 +418,10 @@ app.post("/logout", (req, res) => {
   });
 });
 
+//--------------------------------------------------------------------------------------------------------------
+
 // post routes
-app.get("/posts/create", (req, res) => {
+app.get("/posts/create", isAuth, (req, res) => {
   res.render("create", {
     title: "Create New Post",
     error: null,
@@ -421,7 +429,7 @@ app.get("/posts/create", (req, res) => {
   });
 });
 
-app.post("/posts/create", upload.single("image"), async (req, res) => {
+app.post("/posts/create", isAuth, upload.single("image"), async (req, res) => {
   try {
     const { title, subtitle, body } = req.body;
     console.log("Received form data:", req.body);
@@ -480,7 +488,7 @@ app.post("/posts/create", upload.single("image"), async (req, res) => {
   }
 });
 
-app.get("/posts/:id/edit", async (req, res) => {
+app.get("/posts/:id/edit", isAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -514,46 +522,32 @@ app.get("/posts/:id/edit", async (req, res) => {
   }
 });
 
-app.post("/posts/:id/edit", upload.single("image"), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, subtitle, body } = req.body;
+app.post(
+  "/posts/:id/edit",
+  isAuth,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, subtitle, body } = req.body;
 
-    // check post existance
-    const postCollection = req.db.collection("posts");
-    const _id = new ObjectId(id);
+      // check post existance
+      const postCollection = req.db.collection("posts");
+      const _id = new ObjectId(id);
 
-    const existing = await postCollection.findOne({ _id });
+      const existing = await postCollection.findOne({ _id });
 
-    if (!existing)
-      return res.render("404", {
-        title: "404 Not Found",
-        message: "Invalid ID",
-      });
+      if (!existing)
+        return res.render("404", {
+          title: "404 Not Found",
+          message: "Invalid ID",
+        });
 
-    // validate form data
-    if (!title || !subtitle || !body) {
-      return res.render("edit", {
-        title: "Edit Post",
-        error: "All fields are required.",
-        post: {
-          _id: id,
-          title,
-          subtitle,
-          body,
-        },
-      });
-    }
-
-    // slug
-    let slug = existing.slug;
-    if (existing.title !== title) {
-      const baseSlug = slugify(title);
-
-      if (!baseSlug) {
+      // validate form data
+      if (!title || !subtitle || !body) {
         return res.render("edit", {
           title: "Edit Post",
-          error: "Title is not valid to generate slug!",
+          error: "All fields are required.",
           post: {
             _id: id,
             title,
@@ -562,66 +556,85 @@ app.post("/posts/:id/edit", upload.single("image"), async (req, res) => {
           },
         });
       }
-      slug = await uniqueSlug(postCollection, baseSlug, _id);
-    }
 
-    // multer file info
-    let imageUrl = existing.imageUrl;
-    if (req.file) {
-      // delete old image file if exist
-      if (imageUrl) {
-        const oldImagePath = path.join(
-          __dirname,
-          "public",
-          imageUrl.replace("/uploads/", "uploads/"),
-        );
-        fs.unlink(oldImagePath, (err) => {
-          if (err) console.error("Failed to delete old image file:", err);
+      // slug
+      let slug = existing.slug;
+      if (existing.title !== title) {
+        const baseSlug = slugify(title);
+
+        if (!baseSlug) {
+          return res.render("edit", {
+            title: "Edit Post",
+            error: "Title is not valid to generate slug!",
+            post: {
+              _id: id,
+              title,
+              subtitle,
+              body,
+            },
+          });
+        }
+        slug = await uniqueSlug(postCollection, baseSlug, _id);
+      }
+
+      // multer file info
+      let imageUrl = existing.imageUrl;
+      if (req.file) {
+        // delete old image file if exist
+        if (imageUrl) {
+          const oldImagePath = path.join(
+            __dirname,
+            "public",
+            imageUrl.replace("/uploads/", "uploads/"),
+          );
+          fs.unlink(oldImagePath, (err) => {
+            if (err) console.error("Failed to delete old image file:", err);
+          });
+        }
+
+        imageUrl = `/uploads/${req.file.filename}`;
+      }
+
+      // prepare post data
+      const updateData = {
+        title: title.trim(),
+        subtitle: subtitle.trim(),
+        body: body.trim(),
+        slug,
+        imageUrl,
+        updatedAt: new Date(),
+      };
+
+      const result = await req.db
+        .collection("posts")
+        .updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+
+      if (result.matchedCount === 0) {
+        return res.status(404).render("404", {
+          title: "404 Not Found",
         });
       }
 
-      imageUrl = `/uploads/${req.file.filename}`;
-    }
+      // socket io emit
+      req.io.emit("post:updated", {
+        id,
+        ...updateData,
+      });
 
-    // prepare post data
-    const updateData = {
-      title: title.trim(),
-      subtitle: subtitle.trim(),
-      body: body.trim(),
-      slug,
-      imageUrl,
-      updatedAt: new Date(),
-    };
-
-    const result = await req.db
-      .collection("posts")
-      .updateOne({ _id: new ObjectId(id) }, { $set: updateData });
-
-    if (result.matchedCount === 0) {
-      return res.status(404).render("404", {
-        title: "404 Not Found",
+      // redirect to home
+      return res.redirect(`/posts/${slug}`);
+    } catch (error) {
+      console.error("Error rendering edit page:", error);
+      res.render("edit", {
+        title: "Edit Post",
+        error: `Failed to load the edit page: ${error.message}`,
+        post: req.body,
       });
     }
+  },
+);
 
-    // socket io emit
-    req.io.emit("post:updated", {
-      id,
-      ...updateData,
-    });
-
-    // redirect to home
-    return res.redirect(`/posts/${slug}`);
-  } catch (error) {
-    console.error("Error rendering edit page:", error);
-    res.render("edit", {
-      title: "Edit Post",
-      error: `Failed to load the edit page: ${error.message}`,
-      post: req.body,
-    });
-  }
-});
-
-app.post("/posts/:id/delete", async (req, res) => {
+app.post("/posts/:id/delete", isAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -688,8 +701,33 @@ app.get("/posts/:slug", async (req, res) => {
 
     const comments = await req.db
       .collection("comments")
-      .find({ postId: post._id })
-      .sort({ createdAt: -1 })
+      .aggregate([
+        { $match: { postId: post._id } },
+        { $sort: { createdAt: -1 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            postId: 1,
+            userId: 1,
+            message: 1,
+            createdAt: 1,
+            username: { $ifNull: ["$user.username", "Anonymous"] },
+          },
+        },
+      ])
       .toArray();
 
     res.render("detail", {
@@ -708,10 +746,10 @@ app.get("/posts/:slug", async (req, res) => {
 });
 
 // comment
-app.post("/posts/:slug/comments", async (req, res) => {
+app.post("/posts/:slug/comments", isAuth, async (req, res) => {
   try {
     const { slug } = req.params;
-    const { name, message } = req.body;
+    const { message } = req.body;
 
     const post = await req.db.collection("posts").findOne({ slug });
 
@@ -722,7 +760,7 @@ app.post("/posts/:slug/comments", async (req, res) => {
       });
     }
 
-    if (!name || !message) {
+    if (!message) {
       const comments = await req.db
         .collection("comments")
         .find({ postId: post._id })
@@ -740,7 +778,7 @@ app.post("/posts/:slug/comments", async (req, res) => {
     // prepare comment
     const newComment = {
       postId: post._id,
-      name: name.trim(),
+      userId: new ObjectId(req.session.user._id),
       message: message.trim(),
       createdAt: new Date(),
     };
@@ -751,7 +789,9 @@ app.post("/posts/:slug/comments", async (req, res) => {
     req.io.to(`post:${slug}`).emit("comment:created", {
       id: result.insertedId,
       slug,
-      ...newComment,
+      username: req.session.user.username,
+      message: newComment.message,
+      createdAt: newComment.createdAt,
     });
 
     return res.redirect(`/posts/${slug}`);
