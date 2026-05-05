@@ -804,6 +804,59 @@ app.post("/posts/:slug/comments", isAuth, async (req, res) => {
   }
 });
 
+app.post("/posts/:slug/comments/:id/delete", isAuth, async (req, res) => {
+  try {
+    const { slug, id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).render("error", {
+        title: "Invalid ID",
+        error: `Comment ID is not valid`,
+      });
+    }
+
+    const _id = new ObjectId(id);
+    const comment = await req.db.collection("comments").findOne(_id);
+
+    if (!comment)
+      return res.status("404").render("404", {
+        title: "404 Not Found",
+        message: "Comment not found",
+      });
+
+    // allow only owner to delete
+    if (
+      !req.session?.user ||
+      req.session?.user?._id !== comment.userId?.toString()
+    ) {
+      return res.status("403").render("error", {
+        title: "403 Forbidden",
+        error: `You can delete only your own comment`,
+      });
+    }
+
+    const result = await req.db
+      .collection("comments")
+      .deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).render("404", {
+        title: "404 Not Found",
+        message: "Comment not found",
+      });
+    }
+
+    req.io.emit("comment:delete", { id });
+
+    return res.redirect(`/posts/${slug}`);
+  } catch (error) {
+    console.log(error);
+    res.status(500).render("error", {
+      title: "Server error",
+      message: `Failed to delete comment: ${error.message}`,
+    });
+  }
+});
 //--------------------------------------------------------------------------------------------------------------
 
 // 404 (note : This should be the last route)
