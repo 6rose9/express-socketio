@@ -245,12 +245,12 @@ app.get("/", async (req, res) => {
     // i => case-insensitive search
     const filter = search
       ? {
-          $or: [
-            { title: { $regex: search, $options: "i" } },
-            { subtitle: { $regex: search, $options: "i" } },
-            { body: { $regex: search, $options: "i" } },
-          ],
-        }
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { subtitle: { $regex: search, $options: "i" } },
+          { body: { $regex: search, $options: "i" } },
+        ],
+      }
       : {};
 
     const posts = await db
@@ -854,6 +854,72 @@ app.post("/posts/:slug/comments/:id/delete", isAuth, async (req, res) => {
     res.status(500).render("error", {
       title: "Server error",
       message: `Failed to delete comment: ${error.message}`,
+    });
+  }
+});
+
+app.post("/posts/:slug/comments/:id/edit", isAuth, async (req, res) => {
+  try {
+    const { slug, id } = req.params;
+    const { message } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).render("error", {
+        title: "Invalid ID",
+        message: `Comment ID is not valid`,
+      });
+    }
+
+    if (!message) {
+      return res.status(400).render("error", {
+        title: "Bad Request",
+        message: `Message is required`,
+      });
+    }
+
+    const _id = new ObjectId(id);
+    const existingComment = await req.db.collection("comments").findOne({ _id });
+
+    if (!existingComment) {
+      return res.status(404).render("error", {
+        title: "404 Not Found",
+        message: "Comment Not Found"
+      });
+    }
+
+    // allow only owner to edit
+    if (
+      !req.session.user ||
+      req.session.user._id !== existingComment.userId?.toString()
+    ) {
+      console.log(existingComment)
+      return res.status(403).render("error", {
+        title: "403 Forbidden",
+        message: `You can edit only your own comment`,
+      });
+    }
+
+    const newComment = {
+      message,
+      status: "edited",
+      updatedAt: new Date(),
+    }
+
+    req.db.collection("comments").updateOne(
+      {
+        _id,
+      },
+      {
+        $set: newComment
+      });
+
+    return res.redirect(`/posts/${slug}`);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("error", {
+      title: "Server error",
+      message: `Failed to update comment`,
     });
   }
 });

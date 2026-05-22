@@ -82,7 +82,7 @@
         <!-- edit view -->
         <form
           id="comment-edit-<%= comment._id %>"
-          action=""
+          action="/posts/<%= post.slug %>/comments/<%= comment._id %>/edit"
           class="d-none mb-4"
           method="post"
         >
@@ -99,7 +99,7 @@
               class="btn btn-sm btn-outline-secondary"
               onclick="hideEditForm('<%= comment._id %>')"
             >
-              Cancle
+              Cancel
             </button>
             <button
               type="submit"
