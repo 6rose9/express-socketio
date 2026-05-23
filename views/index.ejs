@@ -30,7 +30,8 @@
         >
         <p class="text-semi-bold mt-3"><%= post.subtitle %></p>
         <p class="post-body"><%= post.body %></p>
-        <div class="">
+        <% if(currentUser?._id === post.userId?.toString()){ %>
+          <div class="">
           <a href="/posts/<%= post._id %>/edit" class="btn btn-sm btn-primary" title="Edit">
             <i class="fa-solid fa-pen-to-square"></i>
           </a>
@@ -40,6 +41,7 @@
             </button>
           </form>
         </div>
+        <% } %>
       </div>
       <% }) %>
 

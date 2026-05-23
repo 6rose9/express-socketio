@@ -462,6 +462,7 @@ app.post("/posts/create", isAuth, upload.single("image"), async (req, res) => {
     // prepare post data
     const newPost = {
       slug,
+      userId: new ObjectId(req.session.user?._id),
       title: title.trim(),
       subtitle: subtitle.trim(),
       body: body.trim(),
