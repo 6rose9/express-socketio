@@ -4,18 +4,11 @@
   <body>
     <%- include('layout/nav.ejs') %>
     <div class="container">
-      <h3><%= title %></h3>
+      <!-- <h3><%= title %></h3> -->
       <div class="row justify-container-center">
         <div class="col-md-8">
           <div class="card border-0">
             <div class="card-body">
-              <% if (post.imageUrl) { %>
-              <img
-                src="<%= post.imageUrl %>"
-                alt="Post Image"
-                class="img-fluid mb-4"
-              />
-              <% } %>
               <h4><%= post.title %></h4>
               <p class="text-muted">
                 Posted: <%= post.createdAt ? new
@@ -25,6 +18,15 @@
                 <span class="text-success">Online Readers: </span>
                 <span class="fw-bold ms-1" id="viewerCounter">0</span>
               </p>
+              <% if (post.imageUrl) { %>
+              <div class="my-4">
+              <img
+                src="<%= post.imageUrl %>"
+                alt="Post Image"
+                class="img-fluid mb-4"
+              />
+              </div>
+              <% } %>
               <h5 class="text-secondary mt-4"><%= post.subtitle %></h5>
               <hr />
               <p class="post-body"><%= post.body %></p>
@@ -51,7 +53,11 @@
                 </form>
                 </div>
               <% }else{ %>
-                <button type="button" class="btn">
+                <button type="button" class="btn" title="Like">
+                  <i class="fa-solid fa-heart fa-lg text-danger"></i>
+                  <span class="ms-1">1</span>
+                </button>
+                <button type="button" class="btn" title="Dislike">
                   <i class="fa-solid fa-heart fa-lg"></i>
                   <span class="ms-1">0</span>
                 </button>

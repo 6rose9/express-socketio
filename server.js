@@ -746,6 +746,8 @@ app.get("/posts/:slug", async (req, res) => {
   }
 });
 
+//--------------------------------------------------------------------------------------------------------------
+
 // comment
 app.post("/posts/:slug/comments", isAuth, async (req, res) => {
   try {
@@ -925,6 +927,76 @@ app.post("/posts/:slug/comments/:id/edit", isAuth, async (req, res) => {
   }
 });
 //--------------------------------------------------------------------------------------------------------------
+
+// like / dislike
+
+app.post("/posts/:slug/like", isAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const userId = new ObjectId(req.session.user._id);
+
+    const post = req.db.collection("posts").findOne({ slug });
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found"
+      });
+    }
+
+    const alreadyLiked = post.likes?.some(id => id.toString() === userId.toString()); // return boolean
+
+    if (alreadyLiked) {
+      // remove like
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $pull: {
+            likes: userId
+          }
+        }
+      )
+    } else {
+      // add like and remove dislike
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $addToSet: {
+            likes: userId
+          },
+          $pull: {
+            dislikes: userId
+          }
+        }
+      )
+    }
+
+    // IMPORTANT : fetch updated data after post update
+    const updatedPost = await req.db.collection("posts").findOne({ slug });
+
+    const payload = {
+      slug,
+      likeCount: updatedPost.likes?.length || 0,
+      dislikeCount: updatedPost.dislikes?.length || 0,
+      liked: updatedPost.likes?.some(id => id.toString() === userId.toString()) || false,
+      disliked: updatedPost.dislikes?.some(id => id.toString() === userId.toString()) || false,
+    }
+
+    // real-time : send to people who are on this post
+    req.io.to(`post:${slug}`).emit("like:reaction", payload);
+
+    return res.json({
+      success: true,
+      data: payload
+    });
+
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: `Failed to like: ${error.message}`
+    });
+  }
+});
 
 // 404 (note : This should be the last route)
 app.use((req, res) => {
