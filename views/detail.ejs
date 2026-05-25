@@ -1,95 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
-  <%- include('layout/head.ejs') %>
+<%- include('layout/head.ejs') %>
+
   <body>
     <%- include('layout/nav.ejs') %>
-    <div class="container">
-      <!-- <h3><%= title %></h3> -->
-      <div class="row justify-container-center">
-        <div class="col-md-8">
-          <div class="card border-0">
-            <div class="card-body">
-              <h4><%= post.title %></h4>
-              <p class="text-muted">
-                Posted: <%= post.createdAt ? new
-                Date(post.createdAt).toLocaleString() : 'N/A' %>
-              </p>
-              <p class="text-muted mb-2">
-                <span class="text-success">Online Readers: </span>
-                <span class="fw-bold ms-1" id="viewerCounter">0</span>
-              </p>
-              <% if (post.imageUrl) { %>
-              <div class="my-4">
-              <img
-                src="<%= post.imageUrl %>"
-                alt="Post Image"
-                class="img-fluid mb-4"
-              />
+      <div class="container">
+        <!-- <h3><%= title %></h3> -->
+        <div class="row justify-container-center">
+          <div class="col-md-8">
+            <!-- Post Content -->
+            <div class="card border-0">
+              <div class="card-body">
+                <h4>
+                  <%= post.title %>
+                </h4>
+                <p class="text-muted">
+                  Posted: <%= post.createdAt ? new Date(post.createdAt).toLocaleString() : 'N/A' %>
+                </p>
+                <p class="text-muted mb-2">
+                  <span class="text-success">Online Readers: </span>
+                  <span class="fw-bold ms-1" id="viewerCounter">0</span>
+                </p>
+                <% if (post.imageUrl) { %>
+                  <div class="my-4">
+                    <img src="<%= post.imageUrl %>" alt="Post Image" class="img-fluid mb-4" />
+                  </div>
+                  <% } %>
+                    <h5 class="text-secondary mt-4">
+                      <%= post.subtitle %>
+                    </h5>
+                    <hr />
+                    <p class="post-body">
+                      <%= post.body %>
+                    </p>
               </div>
-              <% } %>
-              <h5 class="text-secondary mt-4"><%= post.subtitle %></h5>
-              <hr />
-              <p class="post-body"><%= post.body %></p>
-              <% if(currentUser?._id === post.userId?.toString() ){ %>
-                <div class="d-flex gap-2 mt-4">
-                <a href="/" class="btn btn-outline-secondary" title="Back">
-                  <i class="fa-solid fa-home"></i>
-                </a>
-                <a href="/posts/<%= post._id %>/edit" class="btn btn-primary" title="Edit">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </a>
-                <form
-                  action="/posts/<%= post._id %>/delete"
-                  onsubmit="
+              <div class="card-footer">
+                <% if(currentUser?._id===post.userId?.toString() ){ %>
+                  <div class="d-flex gap-2 mt-4">
+                    <a href="/" class="btn btn-outline-secondary" title="Back">
+                      <i class="fa-solid fa-home"></i>
+                    </a>
+                    <a href="/posts/<%= post._id %>/edit" class="btn btn-primary" title="Edit">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </a>
+                    <form action="/posts/<%= post._id %>/delete" onsubmit="
                     return confirm(
                       'Are you sure you want to delete this post?',
                     );
-                  "
-                  method="post"
-                >
-                  <button type="submit" class="btn btn-danger" title="Delete">
-                    <i class="fa-solid fa-trash"></i>
-                  </button>
-                </form>
-                </div>
-              <% }else{ %>
-                <button type="button" class="btn" title="Like">
-                  <i class="fa-solid fa-heart fa-lg text-danger"></i>
-                  <span class="ms-1">1</span>
-                </button>
-                <button type="button" class="btn" title="Dislike">
-                  <i class="fa-solid fa-heart fa-lg"></i>
-                  <span class="ms-1">0</span>
-                </button>
-              <% } %>
+                  " method="post">
+                      <button type="submit" class="btn btn-danger" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <% }else{ %>
+                    <% const userLiked=post.likes?.some(id=> id.toString() === currentUser?._id.toString());
+                      const userDisliked = post.dislikes?.some(id => id.toString() === currentUser?._id.toString());
+                      %>
+                      <button type="button" class="btn" title="Like" <%=currentUser ? '' : 'disabled' %>>
+                        <i class="fa-solid fa-thumbs-up <%= userLiked ? 'text-success' : '' %>"></i>
+                        <span class="ms-1">
+                          <%= post.likes?.length || 0 %>
+                        </span>
+                      </button>
+                      <button type="button" class="btn" title="Dislike" <%=currentUser ? '' : 'disabled' %>>
+                        <i class="fa-solid fa-thumbs-down <%= userDisliked ? 'text-danger' : '' %>"></i>
+                        <span class="ms-1">
+                          <%= post.dislikes?.length || 0 %>
+                        </span>
+                      </button>
+                      <% } %>
+              </div>
             </div>
+            <!-- Comments Section -->
+            <%- include('components/comments.ejs') %>
           </div>
+          <div class="col-md-4"></div>
         </div>
-        <div class="col-md-4"></div>
       </div>
-      <%- include('components/comments.ejs') %>
-    </div>
-    <%- include('layout/footer.ejs') %>
+      
+      <%- include('layout/footer.ejs') %>
 
-    <script>
+        <script>
 
-      const ioClient = io();
-      const pageSlug = "<%= post.slug %>";
+          const ioClient = io();
+          const pageSlug = "<%= post.slug %>";
 
-      // Join a Socket.IO room based on the post slug to receive real-time updates for this post's comments
-      ioClient.emit("join-post", pageSlug);
+          // Join a Socket.IO room based on the post slug to receive real-time updates for this post's comments
+          ioClient.emit("join-post", pageSlug);
 
-      ioClient.on("post:viewers", (count) => {
-        document.getElementById("viewerCounter").textContent = count || 0;
-      });
+          ioClient.on("post:viewers", (count) => {
+            document.getElementById("viewerCounter").textContent = count || 0;
+          });
 
-      ioClient.on("comment:created", (payload) => {
-        
-        if(pageSlug != payload.slug) return; // Ignore if not for this post
-        
-        // prepend new comment to comments box
-        const div = document.createElement("div");
-        div.innerHTML = `
+          ioClient.on("comment:created", (payload) => {
+
+            if (pageSlug != payload.slug) return; // Ignore if not for this post
+
+            // prepend new comment to comments box
+            const div = document.createElement("div");
+            div.innerHTML = `
           <div class="border rounded p-3 mb-3">
             <strong>${escapeHtml(payload.username || 'Anonymous')}</strong>
             <small class="text-muted d-block">${new Date(payload.createdAt).toLocaleString()}</small>
@@ -97,42 +107,43 @@
           </div>
         `;
 
-        const commentsBox = document.getElementById("commentsBox");
-        commentsBox.prepend(div);
+            const commentsBox = document.getElementById("commentsBox");
+            commentsBox.prepend(div);
 
-      });
+          });
 
-      // pagehide => mobile support, beforeunload => desktop support
-      window.addEventListener("beforeunload", () => {
-        ioClient.emit("leave-post", pageSlug);
-      });
+          // pagehide => mobile support, beforeunload => desktop support
+          window.addEventListener("beforeunload", () => {
+            ioClient.emit("leave-post", pageSlug);
+          });
 
-      // helpers
-      function escapeHtml(text) {
-        return String(text)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
+          // helpers
+          function escapeHtml(text) {
+            return String(text)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+          }
 
-      function showEditForm(commentId){
-          const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
-          const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
+          function showEditForm(commentId) {
+            const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
+            const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
 
-          if(viewCommentBox) viewCommentBox.classList.add("d-none");
-          if(editCommentBox) editCommentBox.classList.remove("d-none");
-      }
+            if (viewCommentBox) viewCommentBox.classList.add("d-none");
+            if (editCommentBox) editCommentBox.classList.remove("d-none");
+          }
 
-      function hideEditForm(commentId){
-          const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
-          const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
+          function hideEditForm(commentId) {
+            const viewCommentBox = document.getElementById(`comment-view-${commentId}`);
+            const editCommentBox = document.getElementById(`comment-edit-${commentId}`);
 
-          if(viewCommentBox) viewCommentBox.classList.remove("d-none");
-          if(editCommentBox) editCommentBox.classList.add("d-none");
-      }
+            if (viewCommentBox) viewCommentBox.classList.remove("d-none");
+            if (editCommentBox) editCommentBox.classList.add("d-none");
+          }
 
-    </script>
+        </script>
   </body>
+
 </html>

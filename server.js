@@ -998,6 +998,76 @@ app.post("/posts/:slug/like", isAuth, async (req, res) => {
   }
 });
 
+app.post("/posts/:slug/dislike", isAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const userId = new ObjectId(req.session.user._id);
+
+    const post = req.db.collection("posts").findOne({ slug });
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found"
+      });
+    }
+
+    const alreadyDisliked = post.dislikes?.some(id => id.toString() === userId.toString()); // return boolean
+
+    if (alreadyDisliked) {
+      // remove dislike
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $pull: {
+            dislikes: userId
+          }
+        }
+      )
+    } else {
+      // add dislike and remove like
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $addToSet: {
+            dislikes: userId
+          },
+          $pull: {
+            likes: userId
+          }
+        }
+      )
+    }
+
+    // IMPORTANT : fetch updated data after post update
+    const updatedPost = await req.db.collection("posts").findOne({ slug });
+
+    const payload = {
+      slug,
+      likeCount: updatedPost.likes?.length || 0,
+      dislikeCount: updatedPost.dislikes?.length || 0,
+      liked: updatedPost.likes?.some(id => id.toString() === userId.toString()) || false,
+      disliked: updatedPost.dislikes?.some(id => id.toString() === userId.toString()) || false,
+    }
+
+    // real-time : send to people who are on this post
+    req.io.to(`post:${slug}`).emit("like:reaction", payload);
+
+    return res.json({
+      success: true,
+      data: payload
+    });
+
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: `Failed to like: ${error.message}`
+    });
+  }
+});
+
+//--------------------------------------------------------------------------------------------------------------
+
 // 404 (note : This should be the last route)
 app.use((req, res) => {
   res.status(404).render("404", {
