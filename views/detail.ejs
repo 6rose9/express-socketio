@@ -36,20 +36,17 @@
               </div>
               <div class="card-footer">
                 <% if(currentUser?._id===post.userId?.toString() ){ %>
-                  <div class="d-flex gap-2 mt-4">
-                    <a href="/" class="btn btn-outline-secondary" title="Back">
-                      <i class="fa-solid fa-home"></i>
-                    </a>
-                    <a href="/posts/<%= post._id %>/edit" class="btn btn-primary" title="Edit">
-                      <i class="fa-solid fa-pen-to-square"></i>
+                  <div class="d-flex">
+                    <a href="/posts/<%= post._id %>/edit" class="btn" title="Edit">
+                      <i class="fa-solid fa-pen-to-square text-primary"></i>
                     </a>
                     <form action="/posts/<%= post._id %>/delete" onsubmit="
                     return confirm(
                       'Are you sure you want to delete this post?',
                     );
                   " method="post">
-                      <button type="submit" class="btn btn-danger" title="Delete">
-                        <i class="fa-solid fa-trash"></i>
+                      <button type="submit" class="btn" title="Delete">
+                        <i class="fa-solid fa-trash text-danger"></i>
                       </button>
                     </form>
                   </div>
@@ -57,13 +54,13 @@
                     <% const userLiked=post.likes?.some(id=> id.toString() === currentUser?._id.toString());
                       const userDisliked = post.dislikes?.some(id => id.toString() === currentUser?._id.toString());
                       %>
-                      <button type="button" class="btn" title="Like" <%=currentUser ? '' : 'disabled' %>>
+                      <button type="button" id="btn-like" class="btn" title="Like" <%=currentUser ? '' : 'disabled' %>>
                         <i class="fa-solid fa-thumbs-up <%= userLiked ? 'text-success' : '' %>"></i>
                         <span class="ms-1">
                           <%= post.likes?.length || 0 %>
                         </span>
                       </button>
-                      <button type="button" class="btn" title="Dislike" <%=currentUser ? '' : 'disabled' %>>
+                      <button type="button" id="btn-dislike" class="btn" title="Dislike" <%=currentUser ? '' : 'disabled' %>>
                         <i class="fa-solid fa-thumbs-down <%= userDisliked ? 'text-danger' : '' %>"></i>
                         <span class="ms-1">
                           <%= post.dislikes?.length || 0 %>
@@ -142,6 +139,70 @@
             if (viewCommentBox) viewCommentBox.classList.remove("d-none");
             if (editCommentBox) editCommentBox.classList.add("d-none");
           }
+
+          // like / dislike (uses fetch to call server endpoints and update UI)
+          document.addEventListener("DOMContentLoaded", () => {
+            const btnLike = document.getElementById("btn-like");
+            const btnDislike = document.getElementById("btn-dislike");
+
+            async function handleReaction(type) {
+              const url = `/posts/${pageSlug}/${type}`;
+              const triggerBtn = type === "like" ? btnLike : btnDislike;
+              
+              if (!triggerBtn) return;
+
+              triggerBtn.disabled = true;
+              try {
+                const res = await fetch(url, {
+                  method: "POST",
+                  credentials: "same-origin",
+                });
+
+                const json = await res.json();
+                if (!res.ok || !json.success) {
+                  console.error("Reaction failed", json);
+                  return;
+                }
+
+                const payload = json.data || {};
+
+                const likeIcon = btnLike?.querySelector("i");
+                const likeCount = btnLike?.querySelector("span");
+                const dislikeIcon = btnDislike?.querySelector("i");
+                const dislikeCount = btnDislike?.querySelector("span");
+
+                if (likeIcon) {
+                  if (payload.liked) likeIcon.classList.add("text-success");
+                  else likeIcon.classList.remove("text-success");
+                }
+                if (dislikeIcon) {
+                  if (payload.disliked) dislikeIcon.classList.add("text-danger");
+                  else dislikeIcon.classList.remove("text-danger");
+                }
+
+                if (likeCount) likeCount.textContent = payload.likeCount || 0;
+                if (dislikeCount) dislikeCount.textContent = payload.dislikeCount || 0;
+              } catch (err) {
+                console.error(err);
+              } finally {
+                if (triggerBtn) triggerBtn.disabled = false;
+              }
+            }
+
+            if (btnLike) {
+              btnLike.addEventListener("click", (e) => {
+                e.preventDefault();
+                handleReaction("like");
+              });
+            }
+
+            if (btnDislike) {
+              btnDislike.addEventListener("click", (e) => {
+                e.preventDefault();
+                handleReaction("dislike");
+              });
+            }
+          });
 
         </script>
   </body>

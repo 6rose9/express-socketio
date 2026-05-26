@@ -935,7 +935,7 @@ app.post("/posts/:slug/like", isAuth, async (req, res) => {
     const { slug } = req.params;
     const userId = new ObjectId(req.session.user._id);
 
-    const post = req.db.collection("posts").findOne({ slug });
+    const post = await req.db.collection("posts").findOne({ slug });
 
     if (!post) {
       return res.status(404).json({
@@ -1003,7 +1003,7 @@ app.post("/posts/:slug/dislike", isAuth, async (req, res) => {
     const { slug } = req.params;
     const userId = new ObjectId(req.session.user._id);
 
-    const post = req.db.collection("posts").findOne({ slug });
+    const post = await req.db.collection("posts").findOne({ slug });
 
     if (!post) {
       return res.status(404).json({
