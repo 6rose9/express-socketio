@@ -1066,6 +1066,69 @@ app.post("/posts/:slug/dislike", isAuth, async (req, res) => {
   }
 });
 
+// bookmark
+
+app.post("/posts/:slug/bookmark", isAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const userId = new ObjectId(req.session.user._id);
+
+    const post = await req.db.collection("posts").findOne({ slug });
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    const userBookmarked = post.bookmarks?.some(
+      (id) => id.toString() === userId.toString(),
+    );
+
+    if (userBookmarked) {
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $pull: {
+            bookmarks: userId,
+          },
+        },
+      );
+    } else {
+      await req.db.collection("posts").updateOne(
+        { slug },
+        {
+          $addToSet: {
+            bookmarks: userId,
+          },
+        },
+      );
+    }
+
+    const updatedPost = await req.db.collection("posts").findOne({ slug });
+    const payload = {
+      slug,
+      bookmarkCount: updatedPost.bookmarks?.length || 0,
+      bookmarked:
+        updatedPost.bookmarks?.some(
+          (id) => id.toString() === userId.toString(),
+        ) || false,
+    };
+
+    return res.json({
+      success: true,
+      data: payload,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `Failed to update bookmark: ${error.message}`,
+    });
+  }
+});
+
 //--------------------------------------------------------------------------------------------------------------
 
 // 404 (note : This should be the last route)
