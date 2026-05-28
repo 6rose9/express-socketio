@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<%- include('layout/head.ejs') %>
+
+    <body>
+        <%- include('layout/nav.ejs') %>
+            <div class="container">
+                <h2 class="text-center mb-4">
+                    <%= title %>
+                </h2>
+                <div class="row">
+                    <% if (bookmarks.length===0) { %>
+                        <p class="text-center">You have no bookmarks yet.</p>
+                        <% } else { %>
+                            <% bookmarks.forEach(post=> { %>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <%= post.title %>
+                                            </h5>
+                                            <p class="card-text">
+                                                <%= post.body.substring(0, 100) %>...
+                                            </p>
+                                            <a href="/posts/<%= post.slug %>" class="btn btn-primary btn-sm">Read
+                                                More</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } %>
+                </div>
+            </div>
+            <%- include('layout/footer.ejs') %>
+    </body>
+
+</html>

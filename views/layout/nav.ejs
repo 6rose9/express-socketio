@@ -1,85 +1,60 @@
 <nav class="navbar navbar-expand-md navbar-light bg-light sticky-top">
   <div class="container">
-    <a
-      href="/"
-      class="navbar-brand"
-      >Logo</a
-    >
+    <a href="/" class="navbar-brand">Logo</a>
 
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#navbarNav"
-      aria-controls="navbarNav"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div
-      class="collapse navbar-collapse"
-      id="navbarNav"
-    >
+    <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">
-          <a
-            href="/"
-            class="nav-link"
-            >Home</a
-          >
+          <a href="/" class="nav-link">Home</a>
         </li>
         <li class="nav-item">
-          <a
-            href="/about"
-            class="nav-link"
-            >About</a
-          >
+          <a href="/about" class="nav-link">About</a>
         </li>
+
         <% if(currentUser) { %>
-        <li class="nav-item">
-          <a
-            href="/posts/create"
-            class="nav-link"
-            >Create Post</a
-          >
-        </li>
 
-        <li class="nav-item">
-          <a
-            href=""
-            class="nav-link text-capitalize text-primary fw-semibold"
-            >Hi, <%= currentUser.username || 'User' %></a
-          >
-        </li>
+          <li class="nav-item">
+            <a href="/posts/create" class="nav-link">Create Post</a>
+          </li>
 
-        <li class="nav-item">
-          <form
-            action="/logout"
-            method="post"
-          >
-            <button
-              type="submit"
-              class="btn text-danger text-uppercase"
-              onclick="return confirm('Are you sure you want to logout?')"
-            >
-              Logout
-            </button>
-          </form>
-        </li>
+          <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle text-capitalize text-primary fw-semibold" id="userDropdown"
+              role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Hi, <%= currentUser.username || 'User' %>
+            </a>
 
-        <% } else { %>
+            <ul class="dropdown-menu dropdown-menu-end mt-3" aria-labelledby="userDropdown">
+              <li>
+                <a class="dropdown-item text-capitalize" href="/bookmarks">
+                  <i class="fa-solid fa-bookmark text-warning"></i>
+                  Bookmark
+                </a>
+              </li>
+              <li>
+                <form action="/logout" method="post" class="m-0">
+                  <button type="submit" class="dropdown-item text-danger"
+                    onclick="return confirm('Are you sure you want to logout?')">
+                    <i class="fa-solid fa-right-from-bracket ms-1"></i>
+                    Logout
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </li>
 
-        <li class="nav-item">
-          <a
-            href="/login"
-            class="nav-link text-primary fw-semibold text-uppercase"
-          >
-            Login
-          </a>
-        </li>
-        <% } %>
+          <% } else { %>
+
+            <li class="nav-item">
+              <a href="/login" class="nav-link text-primary fw-semibold text-uppercase">
+                Login
+              </a>
+            </li>
+            <% } %>
       </ul>
     </div>
   </div>

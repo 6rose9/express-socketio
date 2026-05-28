@@ -418,6 +418,29 @@ app.post("/logout", (req, res) => {
   });
 });
 
+app.get("/bookmarks", isAuth, async (req, res) => {
+  try {
+    const userId = new ObjectId(req.session.user._id);
+
+    const posts = await db
+      .collection("posts")
+      .find({ bookmarks: userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.render("bookmark", {
+      title: "My Bookmarks",
+      bookmarks: posts,
+    });
+  } catch (error) {
+    console.error("Error fetching bookmarks", error);
+    res.status(500).render("error", {
+      title: "Server Error",
+      message: error.message || "Something went wrong!",
+    });
+  }
+});
+
 //--------------------------------------------------------------------------------------------------------------
 
 // post routes
